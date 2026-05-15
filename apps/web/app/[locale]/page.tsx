@@ -38,9 +38,9 @@ export default function SahiDawaHome() {
               <button className="hover:text-emerald-600 transition-colors">
                 Alerts
               </button>
-              <button className="hover:text-emerald-600 transition-colors">
+              <Link href="/map" className="hover:text-emerald-600 transition-colors">
                 Pharmacy Map
-              </button>
+              </Link>
             </nav>
             <button className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 rounded-full hover:bg-slate-200 transition-colors shadow-sm">
               <Globe size={16} className="text-emerald-600" />
@@ -281,6 +281,13 @@ export default function SahiDawaHome() {
           </div>
           <span className="text-[11px] font-semibold">Scans</span>
         </button>
+
+        <Link href="/map" className="flex flex-col items-center gap-1.5 w-16 group text-slate-400 hover:text-amber-600 transition-colors">
+          <div className="group-hover:-translate-y-1 transition-transform">
+            <MapPin size={24} strokeWidth={2} />
+          </div>
+          <span className="text-[11px] font-semibold">Map</span>
+        </Link>
 
         <button className="flex flex-col items-center gap-1.5 w-16 group text-slate-400 hover:text-slate-600 transition-colors">
           <div className="relative group-hover:-translate-y-1 transition-transform">
