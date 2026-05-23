@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import sys
@@ -87,3 +88,43 @@ def test_stream_rejects_invalid_json_start_message():
         payload = websocket.receive_json()
         assert payload["type"] == "error"
         assert "json" in payload["error"].lower()
+
+
+def test_stream_rejects_non_object_start_payload():
+    with client.websocket_connect("/asr/stream") as websocket:
+        websocket.send_text('["start"]')
+
+        payload = websocket.receive_json()
+        assert payload["type"] == "error"
+        assert "json object" in payload["error"].lower()
+
+
+def test_stream_returns_cleanly_on_disconnect_message():
+    class FakeWebSocket:
+        def __init__(self):
+            self.query_params = {}
+            self.sent_payloads = []
+            self.messages = [
+                {"text": json.dumps({"type": "start", "mimeType": "audio/webm"})},
+                {"type": "websocket.disconnect", "code": 1000},
+            ]
+
+        async def accept(self):
+            return None
+
+        async def receive(self):
+            if not self.messages:
+                raise AssertionError("stream_transcription read past the disconnect frame")
+            return self.messages.pop(0)
+
+        async def send_json(self, payload):
+            self.sent_payloads.append(payload)
+
+        async def close(self, code=None):
+            raise AssertionError(f"stream_transcription should not close on disconnect: {code}")
+
+    websocket = FakeWebSocket()
+
+    asyncio.run(asr_router.stream_transcription(websocket))
+
+    assert websocket.sent_payloads == [{"type": "ready"}]

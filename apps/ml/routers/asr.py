@@ -362,6 +362,13 @@ async def stream_transcription(websocket: WebSocket):
             await websocket.close(code=1003)
             return
 
+        if not isinstance(payload, dict):
+            await websocket.send_json(
+                {"type": "error", "error": "Start message must be a JSON object."}
+            )
+            await websocket.close(code=1003)
+            return
+
         if payload.get("type") != "start":
             await websocket.send_json(
                 {"type": "error", "error": "Expected start message before audio chunks."}
@@ -379,6 +386,9 @@ async def stream_transcription(websocket: WebSocket):
 
         while True:
             message = await websocket.receive()
+            if message.get("type") == "websocket.disconnect":
+                return
+
             if message.get("bytes"):
                 partial = session.append_and_maybe_transcribe(
                     message["bytes"],
@@ -395,6 +405,13 @@ async def stream_transcription(websocket: WebSocket):
                 except JSONDecodeError:
                     await websocket.send_json(
                         {"type": "error", "error": "Invalid JSON in control message."}
+                    )
+                    await websocket.close(code=1003)
+                    return
+
+                if not isinstance(text_payload, dict):
+                    await websocket.send_json(
+                        {"type": "error", "error": "Control message must be a JSON object."}
                     )
                     await websocket.close(code=1003)
                     return
