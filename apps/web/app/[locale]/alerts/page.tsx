@@ -92,7 +92,7 @@ export default async function FullAlertsLogPage() {
 
             <RecallPushSubscriber />
 
-            <div className="space-y-4">
+            <div role="feed" aria-busy="false" className="space-y-4">
                 {allAlerts && allAlerts.length > 0 ? (
                     allAlerts.map((alert) => {
                         const isSystem = alert.brand_name === "SYSTEM_UPDATE";
@@ -102,6 +102,7 @@ export default async function FullAlertsLogPage() {
                         return (
                             <div
                                 key={alert.id}
+                                role="article"
                                 className="group relative flex cursor-pointer items-start gap-4 overflow-hidden rounded-2xl border border-(--color-border-muted) bg-(--color-surface-page) p-4 shadow-sm transition-shadow hover:shadow-md"
                             >
                                 {/* Left edge colored strip */}
