@@ -22,18 +22,20 @@ export function EmptyState({
 }: EmptyStateProps) {
     return (
         <div
-            className={`flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center ${className}`}
+            role="status"
+            aria-live="polite"
+            className={`animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-10 text-center ${className}`}
         >
-            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-50 text-slate-500 shadow-sm ring-1 ring-slate-100">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shadow-sm ring-1 ring-slate-100 dark:ring-slate-800">
                 {icon}
             </div>
-            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-            <p className="mt-1 max-w-sm text-sm text-slate-500">{description}</p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h2>
+            <p className="mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">{description}</p>
 
             {actionHref && actionLabel && (
                 <Link
                     href={actionHref as any}
-                    className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 dark:bg-slate-100 px-5 py-2.5 text-sm font-semibold text-white dark:text-slate-900 transition hover:bg-slate-800 dark:hover:bg-slate-200"
                 >
                     {actionLabel}
                 </Link>
@@ -42,7 +44,7 @@ export function EmptyState({
             {!actionHref && actionLabel && onAction && (
                 <button
                     onClick={onAction}
-                    className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                    className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 dark:bg-slate-100 px-5 py-2.5 text-sm font-semibold text-white dark:text-slate-900 transition hover:bg-slate-800 dark:hover:bg-slate-200"
                 >
                     {actionLabel}
                 </button>
