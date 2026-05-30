@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useParams } from "next/navigation";
 import { ChatBubble, type Message } from "./components/ChatBubble";
 import { ActionCard } from "./components/ActionCard";
 import { TypingIndicator } from "./components/TypingIndicator";
@@ -9,19 +10,28 @@ import { Camera, Pill, MapPin } from "lucide-react";
 
 const genId = () => Math.random().toString(36).slice(2, 10);
 
-const SYSTEM_PROMPT = `You are SahiDawa, India's trusted open-source health assistant and medicine verifier.
-Help citizens verify medicines, understand symptoms, find appropriate care, and make informed health decisions.
-Respond warmly, empathetically, and clearly. Keep responses concise (2–4 sentences) and actionable.
-Understand Hindi/Hinglish but respond in simple English unless asked otherwise.
-Never diagnose. Help people understand when to seek professional care.
-For medicine queries, describe common use and always recommend a doctor or pharmacist.`;
+const INITIAL_MESSAGES = {
+    en: "Namaste, I'm SahiDawa, your trusted health companion. I can help you verify medicines, understand symptoms, or find nearby care. What would you like help with today?",
 
-const INITIAL_MESSAGE: Message = {
-    id: "init",
-    role: "assistant",
-    content:
-        "Namaste, I'm SahiDawa, your trusted health companion. I can help you verify medicines, understand symptoms, or find nearby care. What would you like help with today?",
-    timestamp: new Date(),
+    bn: "নমস্কার, আমি SahiDawa। আমি ওষুধ যাচাই, উপসর্গ বোঝা এবং নিকটবর্তী স্বাস্থ্যসেবা খুঁজে পেতে সাহায্য করতে পারি। আজ আপনাকে কীভাবে সাহায্য করতে পারি?",
+
+    te: "నమస్కారం, నేను SahiDawa. మందులను ధృవీకరించడం, లక్షణాలను అర్థం చేసుకోవడం మరియు సమీప వైద్య సేవలను కనుగొనడంలో నేను సహాయం చేయగలను. ఈ రోజు మీకు ఎలా సహాయం చేయగలను?",
+
+    ta: "வணக்கம், நான் SahiDawa. மருந்துகளை சரிபார்க்கவும், அறிகுறிகளை புரிந்துகொள்ளவும் மற்றும் அருகிலுள்ள சிகிச்சை சேவைகளை கண்டறியவும் உதவ முடியும். இன்று உங்களுக்கு என்ன உதவி வேண்டும்?",
+
+    mr: "नमस्कार, मी SahiDawa आहे. मी औषध पडताळणी, लक्षणे समजून घेणे आणि जवळील आरोग्यसेवा शोधण्यात मदत करू शकतो. आज मी तुम्हाला कशी मदत करू?",
+
+    gu: "નમસ્તે, હું SahiDawa છું. હું તમને દવાઓ ચકાસવામાં, લક્ષણો સમજવામાં અને નજીકની આરોગ્ય સેવાઓ શોધવામાં મદદ કરી શકું છું. આજે હું તમારી કેવી રીતે મદદ કરી શકું?",
+
+    kn: "ನಮಸ್ಕಾರ, ನಾನು SahiDawa. ಔಷಧಿಗಳನ್ನು ಪರಿಶೀಲಿಸಲು, ಲಕ್ಷಣಗಳನ್ನು ಅರ್ಥಮಾಡಿಕೊಳ್ಳಲು ಮತ್ತು ಸಮೀಪದ ಆರೋಗ್ಯ ಸೇವೆಗಳನ್ನು ಹುಡುಕಲು ನಾನು ಸಹಾಯ ಮಾಡಬಹುದು. ಇಂದು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+
+    ur: "السلام علیکم، میں SahiDawa ہوں۔ میں ادویات کی تصدیق، علامات کو سمجھنے اور قریبی صحت کی سہولیات تلاش کرنے میں مدد کر سکتا ہوں۔ آج میں آپ کی کیسے مدد کر سکتا ہوں؟",
+
+    hi: "नमस्ते, मैं SahiDawa हूँ, आपका भरोसेमंद स्वास्थ्य साथी। मैं दवाइयों की पुष्टि करने, लक्षणों को समझने और आपके नज़दीकी स्वास्थ्य सेवाओं को खोजने में मदद कर सकता हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ?",
+
+    pa: "ਸਤ ਸ੍ਰੀ ਅਕਾਲ, ਮੈਂ SahiDawa ਹਾਂ, ਤੁਹਾਡਾ ਭਰੋਸੇਯੋਗ ਸਿਹਤ ਸਾਥੀ। ਮੈਂ ਦਵਾਈਆਂ ਦੀ ਪੁਸ਼ਟੀ ਕਰਨ, ਲੱਛਣਾਂ ਨੂੰ ਸਮਝਣ ਅਤੇ ਤੁਹਾਡੇ ਨੇੜੇ ਸਿਹਤ ਸੇਵਾਵਾਂ ਲੱਭਣ ਵਿੱਚ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ। ਅੱਜ ਮੈਂ ਤੁਹਾਡੀ ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ?",
+
+    od: "ନମସ୍କାର, ମୁଁ SahiDawa, ଆପଣଙ୍କର ଭରସାଯୋଗ୍ୟ ସ୍ୱାସ୍ଥ୍ୟ ସହଚର। ମୁଁ ଔଷଧ ଯାଞ୍ଚ କରିବା, ଲକ୍ଷଣ ବୁଝିବା ଏବଂ ନିକଟସ୍ଥ ସ୍ୱାସ୍ଥ୍ୟ ସେବା ଖୋଜିବାରେ ସହାୟତା କରିପାରିବି। ଆଜି ମୁଁ ଆପଣଙ୍କୁ କିପରି ସହାୟତା କରିପାରିବି?",
 };
 
 // Icons
@@ -94,7 +104,15 @@ const ACTIONS = [
 ];
 
 export default function ChatUI() {
-    const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+    const params = useParams();
+    const locale = (params.locale as string) || "en";
+    const initialMessage: Message = {
+        id: "init",
+        role: "assistant",
+        content: INITIAL_MESSAGES[locale as keyof typeof INITIAL_MESSAGES] || INITIAL_MESSAGES.en,
+        timestamp: new Date(),
+    };
+    const [messages, setMessages] = useState<Message[]>([initialMessage]);
     const [input, setInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [isListening, setIsListening] = useState(false);
@@ -145,8 +163,11 @@ export default function ChatUI() {
                 const res = await fetch("/api/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: history }),
+                    body: JSON.stringify({ messages: history, locale }),
                 });
+                if (res.status === 429) {
+                    throw new Error("Too many requests. Please try again in a few moments.");
+                }
                 if (!res.ok) throw new Error();
                 const data = await res.json();
                 const reply = data.text || "I'm here to help! Could you rephrase that?";
@@ -154,13 +175,13 @@ export default function ChatUI() {
                     ...prev,
                     { id: genId(), role: "assistant", content: reply, timestamp: new Date() },
                 ]);
-            } catch {
+            } catch (err: any) {
                 setMessages((prev) => [
                     ...prev,
                     {
                         id: genId(),
                         role: "assistant",
-                        content: "",
+                        content: err.message || "Something went wrong",
                         timestamp: new Date(),
                         isError: true,
                     },
@@ -192,7 +213,20 @@ export default function ChatUI() {
         }
         const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         const r = new SR();
-        r.lang = "en-IN";
+        const speechLocales = {
+            en: "en-IN",
+            hi: "hi-IN",
+            bn: "bn-IN",
+            gu: "gu-IN",
+            te: "te-IN",
+            ta: "ta-IN",
+            kn: "kn-IN",
+            ur: "ur-IN",
+            mr: "mr-IN",
+            pa: "pa-IN",
+            od: "or-IN",
+        };
+        r.lang = speechLocales[locale as keyof typeof speechLocales] || "en-IN";
         r.interimResults = false;
         r.onresult = (e: any) => {
             setInput(e.results[0][0].transcript);

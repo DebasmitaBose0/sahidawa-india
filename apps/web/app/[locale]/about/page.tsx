@@ -16,10 +16,15 @@ import {
     BadgeCheck,
 } from "lucide-react";
 import { Link } from "@/i18n/routing";
+import { PageHeader } from "../components/PageHeader";
 
 export default function AboutPage() {
     return (
         <div className="min-h-screen bg-(--color-surface-muted) font-sans text-(--color-text-primary)">
+            <PageHeader
+                backHref="/"
+                variant="light"
+            />
             {/* Hero */}
             <section className="border-b border-(--color-border-muted) bg-(--color-surface-page)">
                 <div className="container mx-auto max-w-6xl space-y-6 px-4 py-16 text-center md:py-24">
@@ -85,7 +90,7 @@ export default function AboutPage() {
                     ].map((item, i) => (
                         <div
                             key={i}
-                            className="group rounded-3xl border border-(--color-border-muted) bg-(--color-surface-page) p-6 shadow-sm transition-all duration-300 hover:shadow-lg"
+                            className="group rounded-3xl border border-(--color-border-muted) bg-(--color-surface-page) p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/30 hover:shadow-lg active:scale-[0.99]"
                         >
                             <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-(--color-surface-muted) text-(--color-text-secondary) transition-all duration-300 group-hover:bg-emerald-500 group-hover:text-white">
                                 {item.icon}

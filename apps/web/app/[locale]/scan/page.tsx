@@ -42,6 +42,7 @@ import {
     extractBatchNumber,
     extractMedicineName,
 } from "@/src/utils/medicineParser";
+import { useOfflineStatus } from "@/hooks/useOfflineStatus";
 
 function formatExpiryForBadge(isoDate: string | null | undefined): string | undefined {
     if (!isoDate) return undefined;
@@ -59,20 +60,24 @@ function CdscoStatusBadge({ status }: { status: string }) {
     const config: Record<string, { label: string; className: string }> = {
         approved: {
             label: "CDSCO Approved",
-            className: "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-450 border-emerald-250 dark:border-emerald-900/30",
+            className:
+                "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-450 border-emerald-250 dark:border-emerald-900/30",
         },
         recalled: {
             label: "Recalled",
-            className: "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-450 border-amber-250 dark:border-amber-900/30",
+            className:
+                "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-450 border-amber-250 dark:border-amber-900/30",
         },
         banned: {
             label: "Banned",
-            className: "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-250 dark:border-red-900/30",
+            className:
+                "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-250 dark:border-red-900/30",
         },
     };
     const c = config[status] ?? {
         label: status,
-        className: "bg-(--color-surface-muted) text-(--color-text-secondary) border-(--color-border-muted)",
+        className:
+            "bg-(--color-surface-muted) text-(--color-text-secondary) border-(--color-border-muted)",
     };
     return (
         <span
@@ -105,7 +110,7 @@ function LoadingSkeleton({ ocrStatus, ocrProgress }: { ocrStatus: string; ocrPro
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6 backdrop-blur-md">
-            <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-(--color-surface-page) p-8 text-(--color-text-primary) border border-(--color-border-muted) shadow-2xl">
+            <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-(--color-border-muted) bg-(--color-surface-page) p-8 text-(--color-text-primary) shadow-2xl">
                 <Skeleton className="absolute top-0 right-0 left-0 h-2 rounded-none bg-emerald-500" />
                 <div className="flex flex-col items-center space-y-4 text-center">
                     <Skeleton className="flex h-20 w-20 items-center justify-center rounded-full bg-(--color-surface-muted)">
@@ -148,6 +153,7 @@ function LoadingSkeleton({ ocrStatus, ocrProgress }: { ocrStatus: string; ocrPro
     );
 }
 
+// Result views with dark/light mode surface tokens and variables support
 function VerifiedSafeResult({
     medicine,
     onScanAgain,
@@ -162,15 +168,17 @@ function VerifiedSafeResult({
     copied: boolean;
 }) {
     return (
-        <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-(--color-surface-page) p-8 text-(--color-text-primary) border border-(--color-border-muted) shadow-2xl">
+        <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-(--color-border-muted) bg-(--color-surface-page) p-8 text-(--color-text-primary) shadow-2xl">
             <div className="absolute top-0 right-0 left-0 h-2 bg-emerald-500"></div>
             <div className="flex flex-col items-center space-y-4 text-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-450 shadow-inner">
+                <div className="dark:text-emerald-450 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 shadow-inner dark:bg-emerald-950/30">
                     <ShieldCheck size={40} strokeWidth={2.5} />
                 </div>
                 <div>
                     <h3 className="text-2xl font-black tracking-tight">{medicine.brand_name}</h3>
-                    <p className="font-medium text-(--color-text-secondary)">Verified by CDSCO Database</p>
+                    <p className="font-medium text-(--color-text-secondary)">
+                        Verified by CDSCO Database
+                    </p>
                 </div>
 
                 <CdscoStatusBadge status={medicine.cdsco_approval_status} />
@@ -190,7 +198,7 @@ function VerifiedSafeResult({
                                 title="Copy medicine details"
                                 className={`shrink-0 rounded-lg p-1.5 transition-all duration-200 ${
                                     copied
-                                        ? "bg-emerald-100 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400"
+                                        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
                                         : "bg-(--color-surface-muted) text-(--color-text-muted) hover:bg-(--color-border-muted) hover:text-(--color-text-primary)"
                                 }`}
                             >
@@ -222,8 +230,11 @@ function VerifiedSafeResult({
 
                 {(medicine.cdsco_approval_status === "recalled" ||
                     medicine.cdsco_approval_status === "banned") && (
-                    <div className="flex w-full items-start gap-3 rounded-2xl border border-amber-250 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-4 text-left">
-                        <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <div className="border-amber-250 flex w-full items-start gap-3 rounded-2xl border bg-amber-50 p-4 text-left dark:border-amber-900 dark:bg-amber-950/20">
+                        <AlertTriangle
+                            size={18}
+                            className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+                        />
                         <p className="text-xs leading-relaxed font-medium text-amber-800 dark:text-amber-400">
                             This medicine has been <strong>{medicine.cdsco_approval_status}</strong>{" "}
                             by CDSCO. Consult your pharmacist before use.
@@ -232,8 +243,11 @@ function VerifiedSafeResult({
                 )}
 
                 {medicine.cdsco_approval_status === "approved" && (
-                    <div className="flex w-full items-start gap-3 rounded-2xl border border-emerald-250 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/20 p-4 text-left">
-                        <Info size={18} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-450" />
+                    <div className="border-emerald-250 flex w-full items-start gap-3 rounded-2xl border bg-emerald-50 p-4 text-left dark:border-emerald-900 dark:bg-emerald-950/20">
+                        <Info
+                            size={18}
+                            className="dark:text-emerald-450 mt-0.5 shrink-0 text-emerald-600"
+                        />
                         <p className="text-xs leading-relaxed font-medium text-emerald-800 dark:text-amber-400">
                             This medicine matches the official records. Always check the physical
                             seal before use.
@@ -261,33 +275,37 @@ function CounterfeitAlertResult({
     copied: boolean;
 }) {
     return (
-        <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-(--color-surface-page) p-8 text-(--color-text-primary) border border-(--color-border-muted) shadow-2xl">
+        <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-(--color-border-muted) bg-(--color-surface-page) p-8 text-(--color-text-primary) shadow-2xl">
             <div className="absolute top-0 right-0 left-0 h-2 bg-red-500"></div>
             <div className="flex flex-col items-center space-y-4 text-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400 shadow-inner">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-100 text-red-600 shadow-inner dark:bg-red-950/30 dark:text-red-400">
                     <AlertTriangle size={40} strokeWidth={2.5} />
                 </div>
                 <div>
                     <h3 className="text-2xl font-black tracking-tight text-red-700 dark:text-red-400">
                         Counterfeit Alert
                     </h3>
-                    <p className="font-medium text-(--color-text-secondary)">{medicine.brand_name}</p>
+                    <p className="font-medium text-(--color-text-secondary)">
+                        {medicine.brand_name}
+                    </p>
                 </div>
 
                 <div className="grid w-full grid-cols-2 gap-3 pt-2">
-                    <div className="rounded-2xl border border-red-250/30 dark:border-red-900/30 bg-red-500/10 p-3">
-                        <span className="block text-[10px] font-bold tracking-wider text-red-400 dark:text-red-500/80 uppercase">
+                    <div className="border-red-250/30 rounded-2xl border bg-red-500/10 p-3 dark:border-red-900/30">
+                        <span className="block text-[10px] font-bold tracking-wider text-red-400 uppercase dark:text-red-500/80">
                             Batch No.
                         </span>
                         <div className="flex items-center justify-between gap-1">
-                            <span className="font-bold text-red-700 dark:text-red-400">{medicine.batch_number}</span>
+                            <span className="font-bold text-red-700 dark:text-red-400">
+                                {medicine.batch_number}
+                            </span>
                             <button
                                 onClick={onCopyMedicineDetails}
                                 aria-label="Copy medicine details"
                                 title="Copy medicine details"
                                 className={`shrink-0 rounded-lg p-1.5 transition-all duration-200 ${
                                     copied
-                                        ? "bg-red-100 dark:bg-red-950/30 text-red-600 dark:text-red-400"
+                                        ? "bg-red-100 text-red-600 dark:bg-red-950/30 dark:text-red-400"
                                         : "bg-(--color-surface-muted) text-(--color-text-muted) hover:bg-(--color-border-muted) hover:text-(--color-text-primary)"
                                 }`}
                             >
@@ -295,8 +313,8 @@ function CounterfeitAlertResult({
                             </button>
                         </div>
                     </div>
-                    <div className="rounded-2xl border border-red-250/30 dark:border-red-900/30 bg-red-500/10 p-3">
-                        <span className="block text-[10px] font-bold tracking-wider text-red-400 dark:text-red-500/80 uppercase">
+                    <div className="border-red-250/30 rounded-2xl border bg-red-500/10 p-3 dark:border-red-900/30">
+                        <span className="block text-[10px] font-bold tracking-wider text-red-400 uppercase dark:text-red-500/80">
                             Manufacturer
                         </span>
                         <span className="text-sm font-bold text-red-700 dark:text-red-400">
@@ -305,8 +323,11 @@ function CounterfeitAlertResult({
                     </div>
                 </div>
 
-                <div className="flex w-full items-start gap-3 rounded-2xl border border-red-250 dark:border-red-900 bg-red-50 dark:bg-red-950/20 p-4 text-left">
-                    <AlertTriangle size={18} className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
+                <div className="border-red-250 flex w-full items-start gap-3 rounded-2xl border bg-red-50 p-4 text-left dark:border-red-900 dark:bg-red-950/20">
+                    <AlertTriangle
+                        size={18}
+                        className="mt-0.5 shrink-0 text-red-600 dark:text-red-400"
+                    />
                     <p className="text-xs leading-relaxed font-bold text-red-800 dark:text-red-400">
                         WARNING: This medicine has been flagged as counterfeit. Do NOT consume.
                         Report to your nearest pharmacy or call the CDSCO helpline immediately.
@@ -331,17 +352,19 @@ function UnverifiedResult({
     onScanAgain: () => void;
 }) {
     return (
-        <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-(--color-surface-page) p-8 text-(--color-text-primary) border border-(--color-border-muted) shadow-2xl">
+        <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-(--color-border-muted) bg-(--color-surface-page) p-8 text-(--color-text-primary) shadow-2xl">
             <div className="absolute top-0 right-0 left-0 h-2 bg-amber-500"></div>
             <div className="flex flex-col items-center space-y-4 text-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-950/30 text-amber-600 dark:text-amber-450 shadow-inner">
+                <div className="dark:text-amber-450 flex h-20 w-20 items-center justify-center rounded-full bg-amber-100 text-amber-600 shadow-inner dark:bg-amber-950/30">
                     <XCircle size={40} strokeWidth={2.5} />
                 </div>
                 <div>
-                    <h3 className="text-2xl font-black tracking-tight text-amber-700 dark:text-amber-450">
+                    <h3 className="dark:text-amber-450 text-2xl font-black tracking-tight text-amber-700">
                         {brandName || "Unverified Medicine"}
                     </h3>
-                    <p className="font-medium text-(--color-text-secondary)">No match found in CDSCO Database</p>
+                    <p className="font-medium text-(--color-text-secondary)">
+                        No match found in CDSCO Database
+                    </p>
                 </div>
 
                 {(batchNumber || expiryDate) && (
@@ -358,9 +381,12 @@ function UnverifiedResult({
                     </div>
                 )}
 
-                <div className="flex w-full items-start gap-3 rounded-2xl border border-amber-250 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/20 p-4 text-left">
-                    <Info size={18} className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <p className="text-xs leading-relaxed font-medium text-amber-800 dark:text-amber-450">
+                <div className="border-amber-250 flex w-full items-start gap-3 rounded-2xl border bg-amber-50 p-4 text-left dark:border-amber-900 dark:bg-amber-950/20">
+                    <Info
+                        size={18}
+                        className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+                    />
+                    <p className="dark:text-amber-450 text-xs leading-relaxed font-medium text-amber-800">
                         No matching record was found for this medicine batch in the CDSCO database.
                         Please verify the spelling or report it if suspicious.
                     </p>
@@ -368,7 +394,7 @@ function UnverifiedResult({
 
                 <button
                     onClick={onScanAgain}
-                    className="w-full rounded-2xl bg-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 py-4 font-bold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
+                    className="w-full rounded-2xl bg-slate-900 py-4 font-bold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
                 >
                     Try Again
                 </button>
@@ -377,9 +403,17 @@ function UnverifiedResult({
     );
 }
 
-function ErrorResult({ message, onRetry }: { message: string; onRetry: () => void }) {
+function ErrorResult({
+    message,
+    onRetry,
+    isOffline,
+}: {
+    message: string;
+    onRetry: () => void;
+    isOffline?: boolean;
+}) {
     return (
-        <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] bg-(--color-surface-page) p-8 text-(--color-text-primary) border border-(--color-border-muted) shadow-2xl">
+        <div className="relative w-full max-w-sm overflow-hidden rounded-[2.5rem] border border-(--color-border-muted) bg-(--color-surface-page) p-8 text-(--color-text-primary) shadow-2xl">
             <div className="absolute top-0 right-0 left-0 h-2 bg-slate-400"></div>
             <div className="flex flex-col items-center space-y-4 text-center">
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-(--color-surface-muted) text-(--color-text-secondary) shadow-inner">
@@ -387,16 +421,19 @@ function ErrorResult({ message, onRetry }: { message: string; onRetry: () => voi
                 </div>
                 <div>
                     <h3 className="text-2xl font-black tracking-tight text-(--color-text-primary)">
-                        Verification Failed
+                        {isOffline ? "Connection Lost" : "Verification Failed"}
                     </h3>
-                    <p className="font-medium text-(--color-text-secondary)">{message}</p>
+                    <p className="text-sm font-medium whitespace-pre-wrap text-slate-500">
+                        {message}
+                    </p>
                 </div>
 
                 <button
                     onClick={onRetry}
-                    className="w-full rounded-2xl bg-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 py-4 font-bold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
+                    disabled={isOffline}
+                    className="w-full rounded-2xl bg-slate-900 py-4 font-bold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
                 >
-                    Try Again
+                    {isOffline ? "Waiting for connection..." : "Try Again"}
                 </button>
             </div>
         </div>
@@ -408,7 +445,7 @@ function ResultActions({ onScanAgain, onShare }: { onScanAgain: () => void; onSh
         <div className="no-print grid w-full grid-cols-1 gap-3">
             <button
                 onClick={onScanAgain}
-                className="w-full rounded-2xl bg-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 py-4 font-bold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
+                className="w-full rounded-2xl bg-slate-900 py-4 font-bold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
             >
                 Scan Another
             </button>
@@ -433,6 +470,13 @@ function ResultActions({ onScanAgain, onShare }: { onScanAgain: () => void; onSh
 }
 
 export default function ScanPage() {
+    // Add these near the top of your component, inside the main function
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [apiError, setApiError] = useState<string | null>(null);
+    const { isOffline, registerRetryCallback, unregisterRetryCallback } = useOfflineStatus();
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const isMountedRef = useRef(true);
+
     const [isScanning, setIsScanning] = useState(false);
     const [showResult, setShowResult] = useState(false);
     const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -454,15 +498,34 @@ export default function ScanPage() {
     const ocrWorkerRef = useRef<Tesseract.Worker | null>(null);
     const ocrCancelledRef = useRef(false);
 
+    // Auto-retry when coming back online
+    const handleVerifyRef = useRef<(batch: string) => Promise<void>>(null as any);
+
     useEffect(() => {
+        isMountedRef.current = true;
+
+        const autoRetry = () => {
+            if (isMountedRef.current && showResult && verifyError && batchInput) {
+                toast.info("Connection restored. Retrying verification...");
+                handleVerifyRef.current?.(batchInput);
+            }
+        };
+
+        registerRetryCallback(autoRetry);
+
         return () => {
+            isMountedRef.current = false;
             ocrCancelledRef.current = true;
             if (ocrWorkerRef.current) {
                 ocrWorkerRef.current.terminate();
                 ocrWorkerRef.current = null;
             }
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            unregisterRetryCallback(autoRetry);
         };
-    }, []);
+    }, [showResult, verifyError, batchInput, registerRetryCallback, unregisterRetryCallback]);
 
     // LASA Check State
     const [lasaMatches, setLasaMatches] = useState<LasaMatch[]>([]);
@@ -505,41 +568,79 @@ export default function ScanPage() {
     const handleSelectConflict = async (conflictName: string) => {
         setShowLasaConfirmation(false);
         setPendingVerifyResult(null);
+
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         setIsScanning(true);
         setShowResult(false);
 
         try {
-            const brandRes = await verifyMedicineByBrand(conflictName);
+            const brandRes = await verifyMedicineByBrand(conflictName, controller.signal);
+            if (!isMountedRef.current || controller.signal.aborted) return;
             setParsedBrand(conflictName);
             await processVerificationResult(brandRes, conflictName);
         } catch (err) {
-            setVerifyError(err instanceof Error ? err.message : "Verification failed");
-        } finally {
-            setIsScanning(false);
+            if (!isMountedRef.current || controller.signal.aborted) return;
+            const errorMsg = err instanceof Error ? err.message : "Verification failed";
+            if (errorMsg === "Request was cancelled.") {
+                return;
+            }
+            setVerifyError(errorMsg);
             setShowResult(true);
+        } finally {
+            if (isMountedRef.current && !controller.signal.aborted) {
+                setIsScanning(false);
+            }
         }
     };
 
-    const handleVerify = useCallback(async (batch: string) => {
-        if (!batch.trim()) {
-            toast.error("Please enter a batch number to verify");
-            return;
-        }
-        setIsScanning(true);
-        setShowResult(false);
-        setVerifyResult(null);
-        setVerifyError(null);
+    const handleVerify = useCallback(
+        async (batch: string) => {
+            if (!batch.trim()) {
+                toast.error("Please enter a batch number to verify");
+                return;
+            }
 
-        try {
-            const result = await verifyMedicine(batch.trim());
-            await processVerificationResult(result);
-        } catch (err) {
-            setVerifyError(err instanceof Error ? err.message : "Verification failed");
-        } finally {
-            setIsScanning(false);
-            setShowResult(true);
-        }
-    }, []);
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            const controller = new AbortController();
+            abortControllerRef.current = controller;
+
+            setIsScanning(true);
+            setShowResult(false);
+            setVerifyResult(null);
+            setVerifyError(null);
+
+            try {
+                const result = await verifyMedicine(batch.trim(), controller.signal);
+                if (!isMountedRef.current || controller.signal.aborted) return;
+                await processVerificationResult(result);
+            } catch (err) {
+                if (!isMountedRef.current || controller.signal.aborted) return;
+                const errorMsg = err instanceof Error ? err.message : "Verification failed";
+                if (errorMsg === "Request was cancelled.") {
+                    return;
+                }
+                setVerifyError(errorMsg);
+                setShowResult(true);
+            } finally {
+                if (isMountedRef.current && !controller.signal.aborted) {
+                    setIsScanning(false);
+                }
+            }
+        },
+        [processVerificationResult]
+    );
+
+    // Keep handleVerifyRef current
+    useEffect(() => {
+        handleVerifyRef.current = handleVerify;
+    }, [handleVerify]);
 
     const handleCopyMedicineDetails = useCallback(async () => {
         if (!verifyResult?.verified) return;
@@ -595,6 +696,12 @@ export default function ScanPage() {
         setUploadedImage(dataUrl);
         e.target.value = "";
 
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         setIsScanning(true);
         setShowResult(false);
         setVerifyResult(null);
@@ -632,6 +739,7 @@ export default function ScanPage() {
                 const barcodeText = zxingResult.getText().trim();
                 if (barcodeText) {
                     barcodeFound = true;
+                    if (!isMountedRef.current || controller.signal.aborted) return;
                     setBatchInput(barcodeText);
                     setOcrStatus("done");
                     toast.success(`Barcode detected: ${barcodeText} — verifying…`);
@@ -642,6 +750,7 @@ export default function ScanPage() {
                 // ZXing failed — continue to OCR fallback
             }
 
+            if (!isMountedRef.current || controller.signal.aborted) return;
             if (barcodeFound || ocrCancelledRef.current) return;
 
             // ── Step 2: Tesseract.js OCR Fallback ────────────────────────────
@@ -658,7 +767,8 @@ export default function ScanPage() {
                 });
             }
 
-            if (ocrCancelledRef.current) return;
+            if (!isMountedRef.current || controller.signal.aborted || ocrCancelledRef.current)
+                return;
 
             const timeoutPromise = new Promise<never>((_, reject) => {
                 setTimeout(() => reject(new Error("OCR timed out")), 30000);
@@ -667,7 +777,8 @@ export default function ScanPage() {
             const ocrPromise = ocrWorkerRef.current.recognize(dataUrl);
             const { data } = await Promise.race([ocrPromise, timeoutPromise]);
 
-            if (ocrCancelledRef.current) return;
+            if (!isMountedRef.current || controller.signal.aborted || ocrCancelledRef.current)
+                return;
 
             const rawText = data.text;
             if (!rawText || !rawText.trim()) {
@@ -704,7 +815,7 @@ export default function ScanPage() {
 
             if (parsedBatchNum) {
                 try {
-                    const batchRes = await verifyMedicine(parsedBatchNum);
+                    const batchRes = await verifyMedicine(parsedBatchNum, controller.signal);
                     if (batchRes.verified) {
                         finalResult = batchRes;
                     }
@@ -713,14 +824,19 @@ export default function ScanPage() {
                 }
             }
 
+            if (!isMountedRef.current || controller.signal.aborted) return;
+
             if (!finalResult && medName) {
                 try {
-                    const matchRes = await fuzzyMatchBrand(medName);
+                    const matchRes = await fuzzyMatchBrand(medName, controller.signal);
                     if (matchRes && matchRes.length > 0) {
                         const topMatch = matchRes[0];
                         if (topMatch.score >= 60) {
                             setParsedBrand(topMatch.name);
-                            const brandRes = await verifyMedicineByBrand(topMatch.name);
+                            const brandRes = await verifyMedicineByBrand(
+                                topMatch.name,
+                                controller.signal
+                            );
                             if (brandRes.verified) {
                                 finalResult = brandRes;
                             }
@@ -730,6 +846,8 @@ export default function ScanPage() {
                     // Silent fallback
                 }
             }
+
+            if (!isMountedRef.current || controller.signal.aborted) return;
 
             if (finalResult && finalResult.verified) {
                 const updatedMedicine = { ...finalResult.medicine };
@@ -752,7 +870,8 @@ export default function ScanPage() {
                 );
             }
         } catch (err) {
-            if (ocrCancelledRef.current) return;
+            if (!isMountedRef.current || controller.signal.aborted || ocrCancelledRef.current)
+                return;
 
             if (ocrWorkerRef.current) {
                 await ocrWorkerRef.current.terminate();
@@ -773,23 +892,25 @@ export default function ScanPage() {
             }
             setOcrStatus("error");
         } finally {
-            if (!ocrCancelledRef.current) {
+            if (isMountedRef.current && !controller.signal.aborted && !ocrCancelledRef.current) {
                 setIsScanning(false);
                 setShowResult(true);
             }
         }
     };
 
-    /** Handles a barcode scanned via the live camera scanner. */
-    const handleBarcodeScan = useCallback(
-        (barcodeText: string) => {
-            setBatchInput(barcodeText);
-            setIsCameraActive(false);
-            toast.success(`Barcode detected: ${barcodeText} — verifying…`);
-            handleVerify(barcodeText);
-        },
-        [handleVerify]
-    );
+    const handleBarcodeScan = async (scannedText: string) => {
+        setIsVerifying(true);
+        setApiError(null);
+
+        try {
+            await handleVerify(scannedText);
+        } catch (error: any) {
+            setApiError(error.message || "Failed to verify medicine with CDSCO.");
+        } finally {
+            setIsVerifying(false);
+        }
+    };
 
     const handleScanAgain = async () => {
         if (ocrWorkerRef.current) {
@@ -863,7 +984,7 @@ export default function ScanPage() {
     };
 
     return (
-        <div className="relative flex min-h-screen flex-col overflow-x-clip bg-black font-sans text-white">
+        <div className="relative flex min-h-screen flex-col overflow-x-clip bg-(--color-surface-page) text-(--color-text-primary) font-sans">
             <input
                 type="file"
                 id="medicine-upload"
@@ -882,7 +1003,13 @@ export default function ScanPage() {
             <div className="relative flex flex-1 items-center justify-center">
                 <div className="absolute inset-0 overflow-hidden bg-slate-900">
                     {isCameraActive ? (
-                        <BarcodeScanner onScan={handleBarcodeScan} debounceMs={2500} />
+                        <BarcodeScanner
+                            onScan={handleBarcodeScan}
+                            debounceMs={2500}
+                            isVerifying={isVerifying}
+                            apiError={apiError}
+                            onRetry={() => setApiError(null)}
+                        />
                     ) : uploadedImage ? (
                         <LazyImage
                             src={uploadedImage}
@@ -899,10 +1026,10 @@ export default function ScanPage() {
                 </div>
 
                 <div className="relative z-10 h-72 w-72 md:h-96 md:w-96">
-                    <div className="absolute top-0 left-0 h-12 w-12 rounded-tl-2xl border-t-4 border-l-4 border-emerald-500"></div>
-                    <div className="absolute top-0 right-0 h-12 w-12 rounded-tr-2xl border-t-4 border-r-4 border-emerald-500"></div>
-                    <div className="absolute bottom-0 left-0 h-12 w-12 rounded-bl-2xl border-b-4 border-l-4 border-emerald-500"></div>
-                    <div className="absolute right-0 bottom-0 h-12 w-12 rounded-br-2xl border-r-4 border-b-4 border-emerald-500"></div>
+                    <div className="absolute top-0 left-0 h-12 w-12 animate-pulse rounded-tl-2xl border-t-4 border-l-4 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]"></div>
+                    <div className="absolute top-0 right-0 h-12 w-12 animate-pulse rounded-tr-2xl border-t-4 border-r-4 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]"></div>
+                    <div className="absolute bottom-0 left-0 h-12 w-12 animate-pulse rounded-bl-2xl border-b-4 border-l-4 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]"></div>
+                    <div className="absolute right-0 bottom-0 h-12 w-12 animate-pulse rounded-br-2xl border-r-4 border-b-4 border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.3)]"></div>
 
                     {isScanning && (
                         <div className="animate-scan absolute right-4 left-4 z-20 h-[2px] bg-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.8)]"></div>
@@ -941,7 +1068,8 @@ export default function ScanPage() {
                                 {verifyError && (
                                     <ErrorResult
                                         message={verifyError}
-                                        onRetry={handleDismissResult}
+                                        onRetry={() => handleVerify(batchInput)}
+                                        isOffline={isOffline}
                                     />
                                 )}
                                 {!verifyError &&
@@ -1004,7 +1132,7 @@ export default function ScanPage() {
                 </div>
             )}
 
-            <div className="flex flex-col items-center gap-6 bg-linear-to-t from-black to-transparent p-8">
+            <div className="flex flex-col items-center gap-6 bg-linear-to-t from-(--color-surface-page) to-transparent p-8">
                 <form
                     onSubmit={handleBatchSubmit}
                     className="flex w-full max-w-sm flex-col gap-3 sm:flex-row"
@@ -1018,11 +1146,11 @@ export default function ScanPage() {
                     />
                     <button
                         type="submit"
-                        disabled={isScanning}
+                        disabled={isScanning || isOffline}
                         className="flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <Search size={18} />
-                        Verify
+                        {isOffline ? "Offline" : "Verify"}
                     </button>
                 </form>
 
@@ -1033,7 +1161,8 @@ export default function ScanPage() {
                 <div className="flex gap-4">
                     <button
                         onClick={() => setIsCameraActive((prev) => !prev)}
-                        className={`flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold shadow-lg transition-colors focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-black focus:outline-none ${
+                        disabled={isOffline}
+                        className={`flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold shadow-lg transition-colors focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-black focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
                             isCameraActive
                                 ? "bg-red-500 text-white hover:bg-red-400"
                                 : "bg-emerald-500 text-white hover:bg-emerald-400"
@@ -1043,8 +1172,18 @@ export default function ScanPage() {
                         {isCameraActive ? "Stop Scanner" : "Scan Barcode"}
                     </button>
                     <label
-                        htmlFor="medicine-upload"
-                        className="flex cursor-pointer items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-black shadow-lg transition-colors hover:bg-slate-200"
+                        htmlFor={isOffline ? undefined : "medicine-upload"}
+                        onClick={(e) => {
+                            if (isOffline) {
+                                e.preventDefault();
+                                toast.error(
+                                    "You are currently offline. Please check your internet connection."
+                                );
+                            }
+                        }}
+                        className={`flex cursor-pointer items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-black shadow-lg transition-colors hover:bg-slate-200 ${
+                            isOffline ? "cursor-not-allowed opacity-50" : ""
+                        }`}
                     >
                         <Layers size={18} />
                         Upload Photo
