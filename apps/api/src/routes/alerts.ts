@@ -1,7 +1,9 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, RequestHandler } from "express";
 import { supabase } from "../db/client";
 import { z } from "zod";
 import { triggerRecallAlert } from "../services/notifications";
+import { validateSchema } from "../middleware/validate";
+import { apiLimiter } from "../middleware/rateLimit";
 
 if (!process.env.API_SECRET_KEY) {
     console.error("CRITICAL ERROR: API_SECRET_KEY is not set. Terminating.");
@@ -22,26 +24,83 @@ const AlertSchema = z
 
 const AlertsArraySchema = z.array(AlertSchema);
 
+const getAlertsQuerySchema = z.object({
+    query: z.object({
+        page: z.string().optional(),
+        limit: z.string().optional(),
+        brand: z.string().optional(),
+        region: z.string().optional(),
+        batch_number: z.string().optional(),
+    }),
+});
+
+const ingestAlertsSchema = z.object({
+    body: z.object({
+        alerts: AlertsArraySchema,
+    }),
+});
+
 const alertsRouter = Router();
 
 /**
- * GET /api/v1/alerts
- * Paginated alerts endpoint.
- *
- * Query params:
- *   page  — 1-based page index (default: 1)
- *   limit — items per page (default: 10, max: 100)
- *
- * Response schema:
- *   {
- *     data:           Alert[],
- *     pageIndex:      number,   // current page (1-based)
- *     pageSize:       number,   // items returned on this page
- *     totalCount:     number,   // total rows in the table
- *     totalPageCount: number,   // ceil(totalCount / limit)
- *   }
+ * @swagger
+ * /api/v1/alerts:
+ *   get:
+ *     summary: Get paginated drug alerts
+ *     description: Retrieve drug alerts with optional filters.
+ *     tags: [Alerts]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: 1-based page index
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ *       - in: query
+ *         name: brand
+ *         schema:
+ *           type: string
+ *         description: Filter by brand name
+ *       - in: query
+ *         name: region
+ *         schema:
+ *           type: string
+ *         description: Filter by region/state
+ *       - in: query
+ *         name: batch_number
+ *         schema:
+ *           type: string
+ *         description: Filter by batch number
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pageIndex:
+ *                   type: integer
+ *                 pageSize:
+ *                   type: integer
+ *                 totalCount:
+ *                   type: integer
+ *                 totalPageCount:
+ *                   type: integer
+ *       429:
+ *         description: Too many requests
+ *       500:
+ *         description: Internal server error
  */
-alertsRouter.get("/", async (req: Request, res: Response) => {
+alertsRouter.get("/", apiLimiter as RequestHandler, validateSchema(getAlertsQuerySchema), async (req: Request, res: Response) => {
     const rawPage = parseInt(req.query.page as string, 10);
     const rawLimit = parseInt(req.query.limit as string, 10);
     const brand = req.query.brand as string;
@@ -87,10 +146,41 @@ alertsRouter.get("/", async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/v1/alerts/ingest
- * Protected endpoint to ingest parsed CDSCO alerts from the ML agent.
+ * @swagger
+ * /api/v1/alerts/ingest:
+ *   post:
+ *     summary: Ingest CDSCO alerts
+ *     description: Protected endpoint to ingest parsed CDSCO alerts from the ML agent. Requires secret header.
+ *     tags: [Alerts]
+ *     parameters:
+ *       - in: header
+ *         name: x-api-secret
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Secret API key
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               alerts:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Successfully ingested
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
  */
-alertsRouter.post("/ingest", async (req: Request, res: Response) => {
+alertsRouter.post("/ingest", apiLimiter as RequestHandler, validateSchema(ingestAlertsSchema), async (req: Request, res: Response): Promise<void> => {
     // 1. Validate Secret Header
     const authHeader = req.headers["x-api-secret"];
     const expectedSecret = process.env.API_SECRET_KEY;
@@ -101,13 +191,8 @@ alertsRouter.post("/ingest", async (req: Request, res: Response) => {
     }
 
     const { alerts } = req.body;
-    const parseResult = AlertsArraySchema.safeParse(alerts);
-    if (!parseResult.success) {
-        res.status(400).json({ error: "Invalid payload schema", details: parseResult.error });
-        return;
-    }
-
-    const validatedAlerts = parseResult.data;
+    // Alerts are already validated by the Zod middleware
+    const validatedAlerts = alerts;
 
     try {
         // 2. Insert alerts into drug_alerts table
@@ -123,7 +208,7 @@ alertsRouter.post("/ingest", async (req: Request, res: Response) => {
         }
 
         // 3. Update medicines table based on matched batches
-        const updatePromises = validatedAlerts.map((alert) => {
+        const updatePromises = validatedAlerts.map((alert: any) => {
             if (alert.batch_number) {
                 let q = supabase
                     .from("medicines")
@@ -144,7 +229,7 @@ alertsRouter.post("/ingest", async (req: Request, res: Response) => {
 
         // 4. Dispatch Web Push Notifications using shared service
         if (insertedAlerts && insertedAlerts.length > 0) {
-            const pushPromises = insertedAlerts.map((alert) => {
+            const pushPromises = insertedAlerts.map((alert: any) => {
                 return triggerRecallAlert({
                     id: alert.id ? String(alert.id) : "unknown",
                     medicineName: alert.reported_brand_name || "Unknown Medicine",

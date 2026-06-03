@@ -1,10 +1,14 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
+import { validateSchema } from "../middleware/validate";
+import { apiLimiter } from "../middleware/rateLimit";
 
 const router = Router();
 
-const analyzeRequestSchema = z.object({
-    imageUrl: z.string().url().startsWith("https://", "imageUrl must be an HTTPS URL"),
+const analyzeReqSchema = z.object({
+    body: z.object({
+        imageUrl: z.string().url().startsWith("https://", "imageUrl must be an HTTPS URL"),
+    }),
 });
 
 const analyzeResponseSchema = z.object({
@@ -17,17 +21,54 @@ const analyzeResponseSchema = z.object({
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL ?? "http://localhost:8000";
 const ML_ANALYSIS_TIMEOUT_MS = 8000;
 
-router.post("/analyze", async (req: Request, res: Response) => {
-    const parsed = analyzeRequestSchema.safeParse(req.body);
-
-    if (!parsed.success) {
-        res.status(400).json({
-            error: "Invalid request body",
-            details: parsed.error.issues,
-        });
-        return;
-    }
-
+/**
+ * @swagger
+ * /api/v1/ml/analyze:
+ *   post:
+ *     tags:
+ *       - Machine Learning
+ *     summary: Analyze an image for counterfeits
+ *     description: Analyzes a medicine image URL using the FastAPI ML microservice.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - imageUrl
+ *             properties:
+ *               imageUrl:
+ *                 type: string
+ *                 format: uri
+ *                 example: "https://example.com/medicine.jpg"
+ *     responses:
+ *       200:
+ *         description: Image analysis results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 isFake:
+ *                   type: boolean
+ *                 confidence:
+ *                   type: number
+ *                 verdict:
+ *                   type: string
+ *                   enum: [likely_genuine, suspicious, likely_fake]
+ *                 details:
+ *                   type: string
+ *       400:
+ *         description: Validation error
+ *       429:
+ *         description: Too many requests
+ *       502:
+ *         description: ML Service error
+ *       504:
+ *         description: ML Service timeout
+ */
+router.post("/analyze", apiLimiter as RequestHandler, validateSchema(analyzeReqSchema), async (req: Request, res: Response): Promise<void> => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), ML_ANALYSIS_TIMEOUT_MS);
 
@@ -35,7 +76,7 @@ router.post("/analyze", async (req: Request, res: Response) => {
         const mlResponse = await fetch(`${ML_SERVICE_URL}/analyze`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(parsed.data),
+            body: JSON.stringify(req.body),
             signal: controller.signal,
         });
 

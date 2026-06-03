@@ -1,7 +1,9 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router, Request, Response, NextFunction, RequestHandler } from "express";
 import { z } from "zod";
 import supabase from "../db/supabase";
 import logger from "../utils/logger";
+import { validateSchema } from "../middleware/validate";
+import { apiLimiter } from "../middleware/rateLimit";
 
 const router = Router();
 
@@ -60,16 +62,20 @@ interface PharmacyWithRawDistance extends FormattedPharmacy {
 // ── Zod validation schemas ───────────────────────────────────────────────────
 
 const nearestQuerySchema = z.object({
-    lat: z.coerce.number().min(-90).max(90),
-    lng: z.coerce.number().min(-180).max(180),
-    radius: z.coerce.number().min(1).max(200).default(50),
+    query: z.object({
+        lat: z.coerce.number().min(-90).max(90),
+        lng: z.coerce.number().min(-180).max(180),
+        radius: z.coerce.number().min(1).max(200).default(50),
+    }),
 });
 
 const boundsQuerySchema = z.object({
-    south: z.coerce.number().min(-90).max(90),
-    west: z.coerce.number().min(-180).max(180),
-    north: z.coerce.number().min(-90).max(90),
-    east: z.coerce.number().min(-180).max(180),
+    query: z.object({
+        south: z.coerce.number().min(-90).max(90),
+        west: z.coerce.number().min(-180).max(180),
+        north: z.coerce.number().min(-90).max(90),
+        east: z.coerce.number().min(-180).max(180),
+    }),
 });
 
 // ── Helper functions ─────────────────────────────────────────────────────────
@@ -193,8 +199,8 @@ function handleFetchError(
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 /**
- * @openapi
- * /api/pharmacies/nearest:
+ * @swagger
+ * /api/v1/pharmacies/nearest:
  *   get:
  *     summary: Find nearest pharmacies
  *     description: >
@@ -280,22 +286,15 @@ function handleFetchError(
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
  *       500:
  *         description: Server or database error
  */
-router.get("/nearest", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/nearest", apiLimiter as RequestHandler, validateSchema(nearestQuerySchema), async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const result = nearestQuerySchema.safeParse(req.query);
-
-        if (!result.success) {
-            res.status(400).json({
-                error: "Invalid coordinates",
-                details: result.error.flatten().fieldErrors,
-            });
-            return;
-        }
-
-        const { lat, lng, radius } = result.data;
+        const parsed = nearestQuerySchema.parse({ query: req.query });
+        const { lat, lng, radius } = parsed.query;
 
         if (!validateSupabaseConfig(res)) return;
 
@@ -364,8 +363,8 @@ router.get("/nearest", async (req: Request, res: Response, next: NextFunction) =
 });
 
 /**
- * @openapi
- * /api/pharmacies/in-bounds:
+ * @swagger
+ * /api/v1/pharmacies/in-bounds:
  *   get:
  *     summary: Find pharmacies within map bounds
  *     description: >
@@ -451,22 +450,15 @@ router.get("/nearest", async (req: Request, res: Response, next: NextFunction) =
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
  *       500:
  *         description: Server or database error
  */
-router.get("/in-bounds", async (req: Request, res: Response, next: NextFunction) => {
+router.get("/in-bounds", apiLimiter as RequestHandler, validateSchema(boundsQuerySchema), async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const result = boundsQuerySchema.safeParse(req.query);
-
-        if (!result.success) {
-            res.status(400).json({
-                error: "Invalid bounds",
-                details: result.error.flatten().fieldErrors,
-            });
-            return;
-        }
-
-        const { south, west, north, east } = result.data;
+        const parsed = boundsQuerySchema.parse({ query: req.query });
+        const { south, west, north, east } = parsed.query;
 
         if (!validateSupabaseConfig(res)) return;
 

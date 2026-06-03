@@ -1,19 +1,22 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import { supabase } from "../db/client";
 import { verifyLimiter } from "../middleware/rateLimit";
+import { validateSchema } from "../middleware/validate";
 
 const router = Router();
 
-const verifySchema = z.object({
-    batchNumber: z
-        .string({ message: "batchNumber is required and must be a string" })
-        .min(3, "batchNumber must be at least 3 characters long"),
+const verifyReqSchema = z.object({
+    body: z.object({
+        batchNumber: z
+            .string({ message: "batchNumber is required and must be a string" } as any)
+            .min(3, "batchNumber must be at least 3 characters long"),
+    }),
 });
 
 /**
- * @openapi
- * /api/verify:
+ * @swagger
+ * /api/v1/verify:
  *   post:
  *     tags:
  *       - Medicine Verification
@@ -81,18 +84,8 @@ const verifySchema = z.object({
  *                   type: string
  *                   example: "Database lookup failed"
  */
-router.post("/", verifyLimiter, async (req: Request, res: Response) => {
-    const parsed = verifySchema.safeParse(req.body);
-
-    if (!parsed.success) {
-        res.status(400).json({
-            error: "Invalid request body",
-            details: parsed.error.issues,
-        });
-        return;
-    }
-
-    const { batchNumber } = parsed.data;
+router.post("/", verifyLimiter as RequestHandler, validateSchema(verifyReqSchema), async (req: Request, res: Response): Promise<void> => {
+    const { batchNumber } = req.body;
 
     const escaped = batchNumber
         .replace(/\\/g, "\\\\")

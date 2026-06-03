@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import multer from "multer";
 import logger from "../utils/logger";
 import { supabase } from "../db/client";
+import { verifyLimiter } from "../middleware/rateLimit";
 
 const router = Router();
 
@@ -93,7 +94,7 @@ function calculateAdvancedMatchScore(ocrText: string, candidate: string): number
 }
 
 /**
- * @openapi
+ * @swagger
  * /api/v1/scan/extract:
  *   post:
  *     tags:
@@ -157,6 +158,8 @@ function calculateAdvancedMatchScore(ocrText: string, candidate: string): number
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
  *       503:
  *         description: ML OCR service unavailable
  *         content:
@@ -170,7 +173,7 @@ function calculateAdvancedMatchScore(ocrText: string, candidate: string): number
  *                 details:
  *                   type: string
  */
-router.post("/extract", (req: Request, res: Response) => {
+router.post("/extract", verifyLimiter as import("express").RequestHandler, (req: Request, res: Response) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (upload.single("file") as any)(req, res, async (multerErr: unknown) => {
         if (multerErr) {

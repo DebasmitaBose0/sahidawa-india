@@ -4,16 +4,20 @@ import { supabase } from '../db/client';
 import { logAdminAction } from '../services/audit.service';
 import { AuthenticatedRequest } from '../middleware/auth';
 
-const reportStatusSchema = z.object({
-  status: z.enum(['pending', 'verified_fake', 'false_alarm']),
+export const reportStatusSchema = z.object({
+  body: z.object({
+    status: z.enum(['pending', 'verified_fake', 'false_alarm']),
+  }),
 });
 
-const medicineSchema = z.object({
-  brand_name: z.string().min(1),
-  generic_name: z.string().min(1),
-  manufacturer: z.string().min(1),
-  barcode_id: z.string().optional(),
-  cdsco_approval_status: z.enum(['approved', 'recalled', 'banned']).default('approved'),
+export const medicineSchema = z.object({
+  body: z.object({
+    brand_name: z.string().min(1),
+    generic_name: z.string().min(1),
+    manufacturer: z.string().min(1),
+    barcode_id: z.string().optional(),
+    cdsco_approval_status: z.enum(['approved', 'recalled', 'banned']).default('approved'),
+  }),
 });
 
 export const getPendingReports = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -39,14 +43,7 @@ export const getPendingReports = async (req: AuthenticatedRequest, res: Response
 export const updateReportStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const parsed = reportStatusSchema.safeParse(req.body);
-
-    if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid status', details: parsed.error.issues });
-      return;
-    }
-
-    const { status } = parsed.data;
+    const { status } = req.body; // Pre-validated by middleware
 
     const { data, error } = await supabase
       .from('counterfeit_reports')
@@ -142,18 +139,14 @@ export const getAllMedicines = async (req: AuthenticatedRequest, res: Response):
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
 export const createMedicine = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const parsed = medicineSchema.safeParse(req.body);
-    
-    if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid medicine data', details: parsed.error.issues });
-      return;
-    }
+    const dataObj = req.body; // Pre-validated by middleware
 
     const { data, error } = await supabase
       .from('medicines')
-      .insert(parsed.data)
+      .insert(dataObj)
       .select()
       .single();
 
@@ -162,7 +155,7 @@ export const createMedicine = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    await logAdminAction(req.user!.id, 'CREATE_MEDICINE', 'MEDICINE', data.id, parsed.data);
+    await logAdminAction(req.user!.id, 'CREATE_MEDICINE', 'MEDICINE', data.id, dataObj);
     res.status(201).json(data);
   } catch (err) {
     console.error(err)
